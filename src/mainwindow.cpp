@@ -59,7 +59,8 @@ MainWindow::MainWindow(QWidget *parent) :
     _wall_view = new RemotePixmapLabel(ui->monitor);
     _wall_view->setAlignment(Qt::AlignCenter);
     _wall_view->setPixmap(QPixmap(":/icons/others/wall_placeholder_180.jpg"));
-    _wall_view->setGeometry(12,26,319,180);
+    _wall_view->setGeometry(11,21,320,180);
+    _wall_view->setStyleSheet("background-color:#242424");
     _wall_view->show();
     _wall_view->installEventFilter(this);
 
@@ -654,15 +655,17 @@ void MainWindow::showItemDetail(QStringList item_meta)
     }
 
     QString channel           = item_meta.at(elements.indexOf("channel"));
+    QString confinement       = item_meta.at(elements.indexOf("confinement"));
     QString descriptionPrefix = "<center>\n\n ## "+item_meta.at(elements.indexOf("title"))+"\n\n"+
                                 "**"+item_meta.at(elements.indexOf("summary"))+"**\n\n\n</center>";
 
     QString descriptionSuffix = "*Package Name : "+item_meta.at(elements.indexOf("name"))+"*\n\n"+
                                 "*Package Size : "+item_meta.at(elements.indexOf("size"))+"*\n\n"+
-                                "*Confinement : "+item_meta.at(elements.indexOf("confinement"))+"*\n\n"+
+                                "*Confinement : "+confinement+"*\n\n"+
                                 "*Categories : "+catStr.remove(0,1)+"*\n\n\n"+
                                 "`snap install "+item_meta.at(elements.indexOf("name"))+
-                                                               QString(channel=="stable"?"":" --"+channel)+"`\n\n\n";
+                                                               QString(channel=="stable"?"":" --"+channel)+
+                                                               QString(confinement=="strict"?"":" --"+confinement)+"`\n\n\n";
     if(htmlParser==nullptr)
     htmlParser = new Md2Html(this);
 
