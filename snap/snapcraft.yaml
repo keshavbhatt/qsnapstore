@@ -72,6 +72,10 @@ parts:
        - build-essential
        - qtbase5-dev
        - dpkg-dev
+   typewriter-font:
+       plugin: nil
+       stage-packages:
+          - fonts-tlwg-typewriter 
    cleanup:
        after: [application]
        plugin: nil
