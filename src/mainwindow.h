@@ -70,8 +70,7 @@ private slots:
     QVariantList itemInfo(const QJsonObject object);
     void setAppButtons(QStringList item_meta);
     void on_description_anchorClicked(const QUrl &arg1);
-
-    void on_meta_anchorClicked(const QUrl &arg1);
+    void on_meta_bottom_anchorClicked(const QUrl &arg1);
 
     void addToHistory(const QString arg1);
     void on_backBtn_clicked();

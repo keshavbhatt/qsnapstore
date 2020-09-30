@@ -90,6 +90,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->description->setStyleSheet("QTextBrowser { padding:9px;border:none;}");
     ui->meta->setStyleSheet("QTextBrowser { padding:9px;border:none;}");
+    ui->meta_bottom->setStyleSheet("QTextBrowser { padding:9px;border:none;}");
 
     ui->backBtn->setEnabled(ui->navigationCombo->count()>0);
     ui->forwardBtn->setEnabled(ui->navigationCombo->count()>0);
@@ -654,19 +655,24 @@ void MainWindow::showItemDetail(QStringList item_meta)
 
     QString channel           = item_meta.at(elements.indexOf("channel"));
     QString descriptionPrefix = "<center>\n\n ## "+item_meta.at(elements.indexOf("title"))+"\n\n"+
-                                "**"+item_meta.at(elements.indexOf("summary"))+"**\n\n"+
-                                ">*Package Name : "+item_meta.at(elements.indexOf("name"))+"*\n\n"+
-                                ">*Package Size : "+item_meta.at(elements.indexOf("size"))+"*\n\n"+
-                                ">*Confinement : "+item_meta.at(elements.indexOf("confinement"))+"*\n\n"+
-                                ">*Categories : "+catStr.remove(0,1)+"*\n\n\n"+
-                                ">`snap install "+item_meta.at(elements.indexOf("name"))+
-                                                               QString(channel=="stable"?"":" --"+channel)+"`\n\n\n</center>";
+                                "**"+item_meta.at(elements.indexOf("summary"))+"**\n\n\n</center>";
+
+    QString descriptionSuffix = "*Package Name : "+item_meta.at(elements.indexOf("name"))+"*\n\n"+
+                                "*Package Size : "+item_meta.at(elements.indexOf("size"))+"*\n\n"+
+                                "*Confinement : "+item_meta.at(elements.indexOf("confinement"))+"*\n\n"+
+                                "*Categories : "+catStr.remove(0,1)+"*\n\n\n"+
+                                "`snap install "+item_meta.at(elements.indexOf("name"))+
+                                                               QString(channel=="stable"?"":" --"+channel)+"`\n\n\n";
     if(htmlParser==nullptr)
     htmlParser = new Md2Html(this);
+
     ui->meta->setHtml(htmlParser->toHtml(descriptionPrefix));
-    ui->description->setHtml(htmlParser->toHtml(item_meta.at(elements.indexOf("description"))));
     ui->meta->setFixedHeight(ui->meta->document()->size().height()+18);
+    ui->description->setHtml(htmlParser->toHtml(item_meta.at(elements.indexOf("description"))));
     ui->description->setFixedHeight(ui->description->document()->size().height()+18);
+    ui->meta_bottom->setHtml(htmlParser->toHtml(descriptionSuffix));
+    ui->meta_bottom->setFixedHeight(ui->meta_bottom->document()->size().height()+18);
+
     setAppButtons(item_meta);
     QStringList scUrls = item_meta.at(elements.indexOf("screenshots")).split(",");
     for (int i=0;i<scUrls.count();i++) {
@@ -904,14 +910,14 @@ void MainWindow::on_description_anchorClicked(const QUrl &arg1)
     QDesktopServices::openUrl(arg1);
 }
 
-
-void MainWindow::on_meta_anchorClicked(const QUrl &arg1)
+void MainWindow::on_meta_bottom_anchorClicked(const QUrl &arg1)
 {
     if(arg1.toString().contains("snap-category:",Qt::CaseSensitive)){
         ui->queryEdit->setText(arg1.toString().trimmed());
         ui->searchBtn->click();
+    }else{
+        QDesktopServices::openUrl(arg1);
     }
-    QDesktopServices::openUrl(arg1);
 }
 
 
