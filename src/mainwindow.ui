@@ -154,7 +154,7 @@
             <property name="geometry">
              <rect>
               <x>0</x>
-              <y>-12</y>
+              <y>0</y>
               <width>453</width>
               <height>601</height>
              </rect>
@@ -468,6 +468,27 @@ background:transparent;</string>
             </layout>
            </widget>
           </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <property name="leftMargin">
+            <number>9</number>
+           </property>
+           <property name="rightMargin">
+            <number>9</number>
+           </property>
+           <item>
+            <widget class="QPushButton" name="appInstallBtn">
+             <property name="text">
+              <string>Install</string>
+             </property>
+             <property name="icon">
+              <iconset resource="icons.qrc">
+               <normaloff>:/icons/mail-line.png</normaloff>:/icons/mail-line.png</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
         </layout>
        </widget>

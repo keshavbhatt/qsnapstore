@@ -43,6 +43,8 @@ MainWindow::MainWindow(QWidget *parent) :
         split1->restoreGeometry(settings.value("split_geometry").toByteArray());
     }
 
+    init_screenshotViewer();
+
     _loader = new WaitingSpinnerWidget(ui->results,true,true);
     _loader->setRoundness(70.0);
     _loader->setMinimumTrailOpacity(15.0);
@@ -108,24 +110,9 @@ MainWindow::MainWindow(QWidget *parent) :
     actionWidget->setStyleSheet("QWidget#"+actionWidget->objectName()+"{background-color: transparent;}");
 
     connect(_ui_action.fullscreen,&QPushButton::clicked,[=](){
-        QGraphicsScene* scene = new QGraphicsScene(this);
-        QGraphicsView* view = new QGraphicsView(scene);
-        RemotePixmapLabel *scl = new RemotePixmapLabel(nullptr);
-        QGraphicsPixmapItem* item = new QGraphicsPixmapItem();
-        connect(scl,&RemotePixmapLabel::pixmapLoaded,[=](QByteArray data){
-            QPixmap pixmap;
-            pixmap.loadFromData(data);
-            item->setPixmap(pixmap);
-            scene->setSceneRect(pixmap.rect());
-            scene->addItem(item);
-        });
-        scl->setRemotePixmap(_currentUrl);
-        view->setAttribute(Qt::WA_DeleteOnClose);
-        view->setStyleSheet("border:none");
-        view->fitInView(item,Qt::KeepAspectRatio);
-        view->setTransformationAnchor(QGraphicsView::AnchorViewCenter);
-        view->setGeometry(ui->centerLayout->geometry());
-        view->show();
+            screenshot->setItem(_currentUrl);
+            screenshot->setGeometry(this->centralWidget()->geometry());
+            screenshot->show();
     });
     actionWidget->setGeometry(_wall_view->rect());
     actionWidget->hide();
@@ -166,6 +153,25 @@ MainWindow::MainWindow(QWidget *parent) :
         showError(errorString);
         _loader->stop();
     });
+}
+
+void MainWindow::init_screenshotViewer()
+{
+    screenshot = new Screenshots(this);
+    screenshot->setWindowFlags(Qt::Widget);
+    screenshot->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Expanding);
+    screenshot->setGeometry(this->rect());
+    screenshot->setStyleSheet("QWidget#"+screenshot->objectName()+"{background-color: transparent;}");
+    connect(screenshot,&Screenshots::next,[=](){
+        on_right_clicked();
+    });
+    connect(screenshot,&Screenshots::prev,[=](){
+        on_left_clicked();
+    });
+    connect(this,&MainWindow::navigationButtons,[=](bool left,bool right){
+       screenshot->navigationUpdate(left,right);
+    });
+    screenshot->hide();
 }
 
 void MainWindow::setStyle(QString fname)
@@ -219,8 +225,10 @@ void MainWindow::on_queryEdit_textChanged(const QString &arg1)
     ui->searchBtn->setEnabled(!arg1.isEmpty());
 }
 
+
 void MainWindow::on_searchBtn_clicked()
 {
+    m_store->cancelAllRequests();
     stopLoadingResults = true;  // to stop result loader loop
     ui->results->clear();
     _loader->start();
@@ -659,13 +667,14 @@ void MainWindow::showItemDetail(QStringList item_meta)
     QString descriptionPrefix = "<center>\n\n ## "+item_meta.at(elements.indexOf("title"))+"\n\n"+
                                 "**"+item_meta.at(elements.indexOf("summary"))+"**\n\n\n</center>";
 
+    installCommand    = "snap install "+item_meta.at(elements.indexOf("name"))+
+            QString(channel=="stable"?"":" --"+channel)+
+            QString(confinement=="strict"?"":" --"+confinement);
     QString descriptionSuffix = "*Package Name : "+item_meta.at(elements.indexOf("name"))+"*\n\n"+
                                 "*Package Size : "+item_meta.at(elements.indexOf("size"))+"*\n\n"+
                                 "*Confinement : "+confinement+"*\n\n"+
                                 "*Categories : "+catStr.remove(0,1)+"*\n\n\n"+
-                                "`snap install "+item_meta.at(elements.indexOf("name"))+
-                                                               QString(channel=="stable"?"":" --"+channel)+
-                                                               QString(confinement=="strict"?"":" --"+confinement)+"`\n\n\n";
+                                "`"+installCommand+"`\n\n\n";
     if(htmlParser==nullptr)
     htmlParser = new Md2Html(this);
 
@@ -808,16 +817,30 @@ void MainWindow::updateNavigationButtons()
     }else{
         ui->left->setEnabled(false);
     }
+    bool leftEnabled  = ui->left->isEnabled();
+    bool rightEnabled = ui->right->isEnabled();
+    emit navigationButtons(leftEnabled,rightEnabled);
 }
 
 void MainWindow::on_right_clicked()
 {
     ui->wallpaperList->setCurrentRow(ui->wallpaperList->currentRow()+1);
+
+    if(screenshot->isVisible()){
+        screenshot->setItem(_currentUrl);
+        screenshot->setGeometry(this->centralWidget()->geometry());
+        screenshot->show();
+    }
 }
 
 void MainWindow::on_left_clicked()
 {
   ui->wallpaperList->setCurrentRow(ui->wallpaperList->currentRow()-1);
+  if(screenshot->isVisible()){
+      screenshot->setItem(_currentUrl);
+      screenshot->setGeometry(this->centralWidget()->geometry());
+      screenshot->show();
+  }
 }
 
 void MainWindow::on_wallpaperList_currentRowChanged(int currentRow)
@@ -881,6 +904,22 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
     return QMainWindow::eventFilter(obj,event);
 }
 
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    screenshot->setGeometry(this->rect());
+    if(screenshot->isVisible()){
+        screenshot->setItem(_currentUrl);
+        screenshot->setGeometry(this->centralWidget()->geometry());
+        screenshot->show();
+    }
+
+    ui->meta->setFixedHeight(ui->meta->document()->size().height()+18);
+    ui->description->setFixedHeight(ui->description->document()->size().height()+18);
+    ui->meta_bottom->setFixedHeight(ui->meta_bottom->document()->size().height()+18);
+
+    QWidget::resizeEvent(event);
+}
+
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     QSplitter *split1 = this->findChild<QSplitter*>("split1");
@@ -923,4 +962,9 @@ void MainWindow::on_meta_bottom_anchorClicked(const QUrl &arg1)
     }
 }
 
-
+void MainWindow::on_appInstallBtn_clicked()
+{
+    screenshot->showIstallCommand(installCommand);
+    screenshot->setGeometry(this->centralWidget()->geometry());
+    screenshot->show();
+}

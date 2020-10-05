@@ -18,6 +18,7 @@
 #include "utils.h"
 #include "remotepixmaplabel.h"
 #include "md2html.h"
+#include "screenshots.h"
 
 #include "ui_track.h"
 #include "ui_wallthumb.h"
@@ -36,9 +37,12 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+signals:
+    void navigationButtons(bool left, bool right);
 protected slots:
     bool eventFilter(QObject *obj, QEvent *event);
     void closeEvent(QCloseEvent *event);
+    void resizeEvent(QResizeEvent *event);
 private slots:
     void on_queryEdit_textChanged(const QString &arg1);
 
@@ -76,6 +80,9 @@ private slots:
     void on_backBtn_clicked();
 
     void on_forwardBtn_clicked();
+    void on_appInstallBtn_clicked();
+
+    void init_screenshotViewer();
 private:
     Ui::MainWindow *ui;
     Ui::track track_ui;
@@ -98,11 +105,12 @@ private:
     QString cache_path;
 
     QString currentWallInfo = "";
-    QString _currentUrl;
+    QString _currentUrl,installCommand;
 
     QSettings settings;
 
     Md2Html *htmlParser = nullptr;
+    Screenshots *screenshot = nullptr;
 
 };
 
