@@ -83,6 +83,9 @@ private slots:
     void on_appInstallBtn_clicked();
 
     void init_screenshotViewer();
+    void showScreenShotWidget();
+    void updateAppDetailViewSize();
+    void init_store();
 private:
     Ui::MainWindow *ui;
     Ui::track track_ui;
@@ -111,6 +114,8 @@ private:
 
     Md2Html *htmlParser = nullptr;
     Screenshots *screenshot = nullptr;
+    QGraphicsOpacityEffect *eff = nullptr;
+
 
 };
 

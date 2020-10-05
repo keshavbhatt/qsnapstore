@@ -33,6 +33,9 @@ MainWindow::MainWindow(QWidget *parent) :
     split1->addWidget(ui->detailWidget);
     split1->setStretchFactor(0,4);
     split1->setStretchFactor(3,1);
+    connect(split1,&QSplitter::splitterMoved,[=](){
+         updateAppDetailViewSize();
+    });
     ui->centerLayout->addWidget(split1);
 
     if(settings.value("split_state").isValid()){
@@ -102,6 +105,7 @@ MainWindow::MainWindow(QWidget *parent) :
     foreach (QPushButton *btn, ui->appButtonWidget->findChildren<QPushButton*>()) {
         btn->setEnabled(false);
     }
+    ui->appInstallBtn->setEnabled(false);
 
     // _ui_action is the child of wall_view
     QWidget *actionWidget = new QWidget(_wall_view);
@@ -112,7 +116,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(_ui_action.fullscreen,&QPushButton::clicked,[=](){
             screenshot->setItem(_currentUrl);
             screenshot->setGeometry(this->centralWidget()->geometry());
-            screenshot->show();
+            showScreenShotWidget();
     });
     actionWidget->setGeometry(_wall_view->rect());
     actionWidget->hide();
@@ -144,6 +148,11 @@ MainWindow::MainWindow(QWidget *parent) :
              <<"icon"<<"screenshots"<<"contact"<<"website"
              <<"summary"<<"title"<<"snap-id"<<"size"<<"channel";
 
+    init_store();
+}
+
+void MainWindow::init_store()
+{
     m_store = new Store(this);
     connect(m_store,SIGNAL(response(QString)),this,SLOT(processResponse(QString)));
     connect(m_store,SIGNAL(gotCategories(QString)),this,SLOT(processCategories(QString)));
@@ -153,6 +162,70 @@ MainWindow::MainWindow(QWidget *parent) :
         showError(errorString);
         _loader->stop();
     });
+}
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == _wall_view && !_currentUrl.isEmpty()) {
+        const QHoverEvent* const he = static_cast<const QHoverEvent*>( event );
+        QWidget *actionWidget = _wall_view->findChild<QWidget*>("actions_view");
+        QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(actionWidget);
+        switch(he->type())
+        {
+        case QEvent::HoverEnter:{
+            if(eff!=nullptr){
+                actionWidget->setGraphicsEffect(eff);
+                QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
+                a->setDuration(250);
+                a->setStartValue(0);
+                a->setEndValue(1);
+                a->setEasingCurve(QEasingCurve::Linear);
+                a->start(QPropertyAnimation::DeleteWhenStopped);
+                actionWidget->show();
+            }
+            break;
+        }
+        case QEvent::HoverLeave:{
+            if(eff!=nullptr){
+                actionWidget->setGraphicsEffect(eff);
+                QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
+                a->setDuration(250);
+                a->setStartValue(1);
+                a->setEndValue(0);
+                a->setEasingCurve(QEasingCurve::Linear);
+                connect(a,&QPropertyAnimation::finished,[=](){
+                    actionWidget->hide();
+                });
+                a->start(QPropertyAnimation::DeleteWhenStopped);
+            }
+            break;
+        }
+        default:
+            break;
+        }
+    }
+    return QMainWindow::eventFilter(obj,event);
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    screenshot->setGeometry(this->rect());
+    if(screenshot->isVisible()){
+        screenshot->setItem(_currentUrl);
+        screenshot->setGeometry(this->centralWidget()->geometry());
+    }
+    updateAppDetailViewSize();
+    QMainWindow::resizeEvent(event);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    QSplitter *split1 = this->findChild<QSplitter*>("split1");
+    settings.setValue("split_state",split1->saveState());
+    settings.setValue("split_geometry",split1->saveGeometry());
+    settings.setValue("geometry",saveGeometry());
+    settings.setValue("windowState", saveState());
+    QWidget::closeEvent(event);
 }
 
 void MainWindow::init_screenshotViewer()
@@ -172,6 +245,24 @@ void MainWindow::init_screenshotViewer()
        screenshot->navigationUpdate(left,right);
     });
     screenshot->hide();
+}
+
+void MainWindow::showScreenShotWidget()
+{
+    eff =  new QGraphicsOpacityEffect(screenshot);
+    if(eff!=nullptr){
+        screenshot->setGraphicsEffect(eff);
+        QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
+        a->setDuration(250);
+        a->setStartValue(0);
+        a->setEndValue(1);
+        a->setEasingCurve(QEasingCurve::Linear);
+        connect(a,&QPropertyAnimation::finished,[=](){
+           eff->deleteLater();
+        });
+        a->start(QPropertyAnimation::DeleteWhenStopped);
+        screenshot->show();
+    }
 }
 
 void MainWindow::setStyle(QString fname)
@@ -218,52 +309,6 @@ void MainWindow::loadCategory(const QString catName)
 MainWindow::~MainWindow()
 {
     delete ui;
-}
-
-void MainWindow::on_queryEdit_textChanged(const QString &arg1)
-{
-    ui->searchBtn->setEnabled(!arg1.isEmpty());
-}
-
-
-void MainWindow::on_searchBtn_clicked()
-{
-    m_store->cancelAllRequests();
-    stopLoadingResults = true;  // to stop result loader loop
-    ui->results->clear();
-    _loader->start();
-
-    QString term = ui->queryEdit->text().trimmed().split(":").last();
-    QString protocol = ui->queryEdit->text().trimmed().split(term).first();
-    QStringList protocols;
-    protocols<<"snap-by:"<<"snap-search:"<<"snap-category:"<<"snap-related:";
-    switch (protocols.indexOf(protocol)) {
-        case 0:{
-            m_store->search(term);
-            setStatus("Loading snaps by <b style='color:skyblue'>'"+term+"'...</b>");
-            break;
-        }
-        case 1:{
-            m_store->search(term);
-            setStatus("Searching for <b style='color:skyblue'>'"+term+"'...</b>");
-            break;
-        }
-        case 2:{
-            m_store->loadCategory(term);
-            setStatus("Loading snaps from category <b style='color:skyblue'>'"+term+"'...</b>");
-            break;
-        }
-        case 3:{
-            m_store->search(term);
-            setStatus("Loading snaps related to <b style='color:skyblue'>'"+term+"'...</b>");
-            break;
-        }
-        default:{
-            m_store->search(term);
-            setStatus("Searching for <b style='color:skyblue'>'"+term+"'...</b>");
-            break;
-        }
-    }
 }
 
 void MainWindow::showError(QString message)
@@ -374,24 +419,6 @@ void MainWindow::addToHistory(const QString arg1)
 
     backwardStepAvailable ? ui->backBtn->setToolTip("Go back to "+prevItem):ui->backBtn->setToolTip("Back");
     forwardStepAvailable ? ui->forwardBtn->setToolTip("Go forward to "+nextItem):ui->forwardBtn->setToolTip("Forward");
-}
-
-void MainWindow::on_backBtn_clicked()
-{
-    int historyItemIndex = ui->navigationCombo->currentIndex()-1;
-    ui->navigationCombo->setCurrentIndex(historyItemIndex);
-    QString historyItem  = ui->navigationCombo->itemText(historyItemIndex);
-    ui->queryEdit->setText(historyItem);
-    on_searchBtn_clicked();
-}
-
-void MainWindow::on_forwardBtn_clicked()
-{
-    int historyItemIndex = ui->navigationCombo->currentIndex()+1;
-    ui->navigationCombo->setCurrentIndex(historyItemIndex);
-    QString historyItem  = ui->navigationCombo->itemText(historyItemIndex);
-    ui->queryEdit->setText(historyItem);
-    on_searchBtn_clicked();
 }
 
 
@@ -618,43 +645,14 @@ QVariantList MainWindow::itemInfo(const QJsonObject object)
     return item;
 }
 
-void MainWindow::on_queryEdit_returnPressed()
-{
-    if(ui->queryEdit->text().trimmed().isEmpty()==false){
-        ui->searchBtn->click();
-    }
-}
 
-void MainWindow::on_status_linkActivated(const QString &link)
-{
-    if(link.contains("data://",Qt::CaseInsensitive)){
-        append_more_results(link.split("data://").last().toInt()+1);
-    }
-}
-
-
-void MainWindow::on_results_currentRowChanged(int currentRow)
-{
-    foreach (QPushButton *btn, ui->appButtonWidget->findChildren<QPushButton*>()) {
-        btn->setEnabled(false);
-    }
-    ui->scrollArea->verticalScrollBar()->setValue(ui->scrollArea->verticalScrollBar()->minimum());
-    _wall_view->setPixmap(QPixmap(":/icons/others/wall_placeholder_180.jpg"));
-    ui->wallpaperList->clear();
-    QListWidgetItem *item = ui->results->item(currentRow);
-    if(item!=nullptr){
-        QStringList item_meta = item->data(Qt::UserRole).toStringList();
-        showItemDetail(item_meta);
-    }else{
-        ui->description->clear();
-    }
-}
 
 void MainWindow::showItemDetail(QStringList item_meta)
 {
     foreach (QPushButton *btn, ui->appButtonWidget->findChildren<QPushButton*>()) {
         btn->setEnabled(true);
     }
+    ui->appInstallBtn->setEnabled(true);
 
     QStringList catLinks = item_meta.at(elements.indexOf("categories")).split(",");
     QString catStr;
@@ -671,6 +669,7 @@ void MainWindow::showItemDetail(QStringList item_meta)
             QString(channel=="stable"?"":" --"+channel)+
             QString(confinement=="strict"?"":" --"+confinement);
     QString descriptionSuffix = "*Package Name : "+item_meta.at(elements.indexOf("name"))+"*\n\n"+
+                                "*By : "+item_meta.at(elements.indexOf("pub_dname"))+"*\n\n"+
                                 "*Package Size : "+item_meta.at(elements.indexOf("size"))+"*\n\n"+
                                 "*Confinement : "+confinement+"*\n\n"+
                                 "*Categories : "+catStr.remove(0,1)+"*\n\n\n"+
@@ -822,6 +821,107 @@ void MainWindow::updateNavigationButtons()
     emit navigationButtons(leftEnabled,rightEnabled);
 }
 
+void MainWindow::updateAppDetailViewSize()
+{
+    ui->meta->setFixedHeight(ui->meta->document()->size().height()+18);
+    ui->description->setFixedHeight(ui->description->document()->size().height()+18);
+    ui->meta_bottom->setFixedHeight(ui->meta_bottom->document()->size().height()+18);
+}
+
+void MainWindow::on_backBtn_clicked()
+{
+    int historyItemIndex = ui->navigationCombo->currentIndex()-1;
+    ui->navigationCombo->setCurrentIndex(historyItemIndex);
+    QString historyItem  = ui->navigationCombo->itemText(historyItemIndex);
+    ui->queryEdit->setText(historyItem);
+    on_searchBtn_clicked();
+}
+
+void MainWindow::on_forwardBtn_clicked()
+{
+    int historyItemIndex = ui->navigationCombo->currentIndex()+1;
+    ui->navigationCombo->setCurrentIndex(historyItemIndex);
+    QString historyItem  = ui->navigationCombo->itemText(historyItemIndex);
+    ui->queryEdit->setText(historyItem);
+    on_searchBtn_clicked();
+}
+
+void MainWindow::on_queryEdit_textChanged(const QString &arg1)
+{
+    ui->searchBtn->setEnabled(!arg1.isEmpty());
+}
+
+void MainWindow::on_searchBtn_clicked()
+{
+    m_store->cancelAllRequests();
+    stopLoadingResults = true;  // to stop result loader loop
+    ui->results->clear();
+    _loader->start();
+
+    QString term = ui->queryEdit->text().trimmed().split(":").last();
+    QString protocol = ui->queryEdit->text().trimmed().split(term).first();
+    QStringList protocols;
+    protocols<<"snap-by:"<<"snap-search:"<<"snap-category:"<<"snap-related:";
+    switch (protocols.indexOf(protocol)) {
+        case 0:{
+            setStatus("Loading snaps by <b style='color:skyblue'>'"+term+"'...</b>");
+            m_store->search(term);
+            break;
+        }
+        case 1:{
+            setStatus("Searching for <b style='color:skyblue'>'"+term+"'...</b>");
+            m_store->search(term);
+            break;
+        }
+        case 2:{
+            setStatus("Loading snaps from category <b style='color:skyblue'>'"+term+"'...</b>");
+            m_store->loadCategory(term);
+            break;
+        }
+        case 3:{
+            setStatus("Loading snaps related to <b style='color:skyblue'>'"+term+"'...</b>");
+            m_store->search(term);
+            break;
+        }
+        default:{
+            setStatus("Searching for <b style='color:skyblue'>'"+term+"'...</b>");
+            m_store->search(term);
+            break;
+        }
+    }
+}
+
+void MainWindow::on_queryEdit_returnPressed()
+{
+    if(ui->queryEdit->text().trimmed().isEmpty()==false){
+        ui->searchBtn->click();
+    }
+}
+
+void MainWindow::on_status_linkActivated(const QString &link)
+{
+    if(link.contains("data://",Qt::CaseInsensitive)){
+        append_more_results(link.split("data://").last().toInt()+1);
+    }
+}
+
+void MainWindow::on_results_currentRowChanged(int currentRow)
+{
+    foreach (QPushButton *btn, ui->appButtonWidget->findChildren<QPushButton*>()) {
+        btn->setEnabled(false);
+    }
+    ui->scrollArea->verticalScrollBar()->setValue(ui->scrollArea->verticalScrollBar()->minimum());
+    _wall_view->setPixmap(QPixmap(":/icons/others/wall_placeholder_180.jpg"));
+    ui->wallpaperList->clear();
+    QListWidgetItem *item = ui->results->item(currentRow);
+    if(item!=nullptr){
+        QStringList item_meta = item->data(Qt::UserRole).toStringList();
+        showItemDetail(item_meta);
+    }else{
+        ui->description->clear();
+    }
+}
+
 void MainWindow::on_right_clicked()
 {
     ui->wallpaperList->setCurrentRow(ui->wallpaperList->currentRow()+1);
@@ -829,7 +929,6 @@ void MainWindow::on_right_clicked()
     if(screenshot->isVisible()){
         screenshot->setItem(_currentUrl);
         screenshot->setGeometry(this->centralWidget()->geometry());
-        screenshot->show();
     }
 }
 
@@ -839,7 +938,6 @@ void MainWindow::on_left_clicked()
   if(screenshot->isVisible()){
       screenshot->setItem(_currentUrl);
       screenshot->setGeometry(this->centralWidget()->geometry());
-      screenshot->show();
   }
 }
 
@@ -860,76 +958,6 @@ void MainWindow::on_wallpaperList_itemClicked(QListWidgetItem *item)
     }
     updateNavigationButtons();
 }
-
-bool MainWindow::eventFilter(QObject *obj, QEvent *event)
-{
-    if (obj == _wall_view && !_currentUrl.isEmpty()) {
-        const QHoverEvent* const he = static_cast<const QHoverEvent*>( event );
-        QWidget *actionWidget = _wall_view->findChild<QWidget*>("actions_view");
-        QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(actionWidget);
-        switch(he->type())
-        {
-        case QEvent::HoverEnter:{
-            if(eff!=nullptr){
-                actionWidget->setGraphicsEffect(eff);
-                QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
-                a->setDuration(250);
-                a->setStartValue(0);
-                a->setEndValue(1);
-                a->setEasingCurve(QEasingCurve::Linear);
-                a->start(QPropertyAnimation::DeleteWhenStopped);
-                actionWidget->show();
-            }
-            break;
-        }
-        case QEvent::HoverLeave:{
-            if(eff!=nullptr){
-                actionWidget->setGraphicsEffect(eff);
-                QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
-                a->setDuration(250);
-                a->setStartValue(1);
-                a->setEndValue(0);
-                a->setEasingCurve(QEasingCurve::Linear);
-                connect(a,&QPropertyAnimation::finished,[=](){
-                    actionWidget->hide();
-                });
-                a->start(QPropertyAnimation::DeleteWhenStopped);
-            }
-            break;
-        }
-        default:
-            break;
-        }
-    }
-    return QMainWindow::eventFilter(obj,event);
-}
-
-void MainWindow::resizeEvent(QResizeEvent *event)
-{
-    screenshot->setGeometry(this->rect());
-    if(screenshot->isVisible()){
-        screenshot->setItem(_currentUrl);
-        screenshot->setGeometry(this->centralWidget()->geometry());
-        screenshot->show();
-    }
-
-    ui->meta->setFixedHeight(ui->meta->document()->size().height()+18);
-    ui->description->setFixedHeight(ui->description->document()->size().height()+18);
-    ui->meta_bottom->setFixedHeight(ui->meta_bottom->document()->size().height()+18);
-
-    QWidget::resizeEvent(event);
-}
-
-void MainWindow::closeEvent(QCloseEvent *event)
-{
-    QSplitter *split1 = this->findChild<QSplitter*>("split1");
-    settings.setValue("split_state",split1->saveState());
-    settings.setValue("split_geometry",split1->saveGeometry());
-    settings.setValue("geometry",saveGeometry());
-    settings.setValue("windowState", saveState());
-    QWidget::closeEvent(event);
-}
-
 
 void MainWindow::on_homeBtn_clicked()
 {
@@ -966,5 +994,6 @@ void MainWindow::on_appInstallBtn_clicked()
 {
     screenshot->showIstallCommand(installCommand);
     screenshot->setGeometry(this->centralWidget()->geometry());
-    screenshot->show();
+    showScreenShotWidget();
 }
+
