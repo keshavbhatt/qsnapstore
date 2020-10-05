@@ -151,12 +151,17 @@ QString utils::convertSectoDay(qint64 secs)
 //static on demand path maker
 QString utils::returnPath(QString pathname)
 {
+    auto sepe = QDir::separator();
     QString _data_path = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    if(!QDir(_data_path+"/"+pathname).exists()){
-        QDir d(_data_path+"/"+pathname);
-        d.mkpath(_data_path+"/"+pathname);
+    if(!QDir(_data_path).exists()){
+        QDir d;
+        d.mkpath(_data_path);
     }
-    return _data_path+"/"+pathname+"/";
+    if(!QDir(_data_path+sepe+pathname).exists()){
+        QDir d(_data_path+sepe+pathname);
+        d.mkpath(_data_path+sepe+pathname);
+    }
+    return _data_path+sepe+pathname+sepe;
 }
 
 
