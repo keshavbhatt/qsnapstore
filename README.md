@@ -1,6 +1,9 @@
 # QSnapStore  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 Qt based Graphical frontend for browsing and searching [snapstore.io/store](https://snapstore.io/store) .
 
+<p align="center">
+  <img width="200" height="200" src="https://github.com/keshavbhatt/qsnapstore/blob/main/src/icons/app/icon-256.png?raw=true">
+</p>
 
 Features include:
 
