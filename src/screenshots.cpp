@@ -60,7 +60,7 @@ void Screenshots::showIstallCommand(QString command)
     ui->graphicsView->scene()->clear();
     ui->graphicsView->resetMatrix();
     QFont f;
-    f.setFamily("Helvetica [Cronyx]");
+    f.setFamily("FreeMono");
     f.setStyleHint(QFont::Monospace);
     f.setPixelSize(22);
     QGraphicsTextItem* ti = new QGraphicsTextItem(command);
