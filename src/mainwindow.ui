@@ -62,6 +62,9 @@
       </item>
       <item>
        <widget class="QComboBox" name="categoryCombo">
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
         <property name="sizeAdjustPolicy">
          <enum>QComboBox::AdjustToContents</enum>
         </property>
