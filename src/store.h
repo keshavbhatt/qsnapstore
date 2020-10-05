@@ -23,6 +23,7 @@ public slots:
     void search(QString search_term);
     void loadCategory(const QString catName);
     void getCategories();
+    void cancelAllRequests();
 private slots:
     void get(const QUrl url);
     void downloadProgress(qint64 got, qint64 tot);

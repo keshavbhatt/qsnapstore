@@ -1,5 +1,8 @@
 #include "store.h"
 #include "request.h"
+#include "utils.h"
+#include <QJsonDocument>
+#include <QCryptographicHash>
 
 Store::Store(QObject *parent) : QObject(parent)
 {
@@ -17,12 +20,29 @@ Store::Store(QObject *parent) : QObject(parent)
     connect(m_netwManager,&QNetworkAccessManager::finished,[=](QNetworkReply* rep){
         if(rep->error() == QNetworkReply::NoError){
             QByteArray response = rep->readAll();
+            QJsonDocument jsonDoc = QJsonDocument::fromJson(response);
+            if(!jsonDoc.isEmpty()){
+                QString reqUrlStr = rep->request().url().toString();
+                QString ci_id = QString(QCryptographicHash::hash((reqUrlStr.toUtf8()),QCryptographicHash::Md5).toHex());
+                utils::saveJson(jsonDoc,utils::returnPath("store_cache")+ci_id);
+            }
             processResponse(response);
         }else{
             downloadError(rep->errorString());
         }
         rep->deleteLater();
     });
+}
+
+void Store::cancelAllRequests()
+{
+    foreach (auto &reply, m_netwManager->findChildren<QNetworkReply *>()) {
+        if (! reply->isReadable()) {
+                return;
+        }
+        reply->abort();
+        reply->deleteLater();
+    }
 }
 
 void Store::loadCategory(const QString catName)
@@ -62,9 +82,17 @@ void Store::search(QString search_term)
 
 void Store::get(const QUrl url)
 {
-    QNetworkRequest request(url);
-    request.setRawHeader("Snap-Device-Series","16");
-    m_netwManager->get(request);
+    QString reqUrlStr = url.toString();
+    QString ci_id = QString(QCryptographicHash::hash((reqUrlStr.toUtf8()),QCryptographicHash::Md5).toHex());
+    QFileInfo cFile(utils::returnPath("store_cache")+ci_id);
+    if(cFile.isFile() && cFile.exists() && cFile.size()!=0){
+        processResponse(utils::loadJson(cFile.filePath()).toJson());
+        qDebug()<<"data loaded from local cache";
+    }else{
+        QNetworkRequest request(url);
+        request.setRawHeader("Snap-Device-Series","16");
+        m_netwManager->get(request);
+    }
 }
 
 void Store::downloadProgress(qint64 got,qint64 tot)
