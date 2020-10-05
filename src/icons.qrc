@@ -110,7 +110,6 @@
         <file>icons/app/icon-32.png</file>
         <file>icons/app/icon-16.png</file>
         <file>icons/app/icon-512.png</file>
-        <file>icons/app/icon.xcf</file>
         <file>icons/app/resize.sh</file>
     </qresource>
 </RCC>
