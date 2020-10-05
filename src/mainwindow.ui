@@ -484,7 +484,7 @@ background:transparent;</string>
              </property>
              <property name="icon">
               <iconset resource="icons.qrc">
-               <normaloff>:/icons/mail-line.png</normaloff>:/icons/mail-line.png</iconset>
+               <normaloff>:/icons/download-line.png</normaloff>:/icons/download-line.png</iconset>
              </property>
             </widget>
            </item>
