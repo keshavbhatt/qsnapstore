@@ -41,6 +41,7 @@ SOURCES += \
         remotepixmaplabel.cpp \
         request.cpp \
         rungaurd.cpp \
+        screenshots.cpp \
         store.cpp \
         utils.cpp \
         widgets/RangeSlider.cpp \
@@ -62,6 +63,7 @@ HEADERS += \
         remotepixmaplabel.h \
         request.h \
         rungaurd.h \
+        screenshots.h \
         store.h \
         utils.h \
         widgets/RangeSlider.h \
@@ -79,6 +81,7 @@ FORMS += \
         action_ui.ui \
         error.ui \
         mainwindow.ui \
+        screenshots.ui \
         track.ui \
         wallthumb.ui
 
