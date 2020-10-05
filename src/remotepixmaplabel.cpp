@@ -8,6 +8,13 @@
 
 RemotePixmapLabel::~RemotePixmapLabel()
 {
+    foreach (auto &reply, networkManager_->findChildren<QNetworkReply *>()) {
+        if (! reply->isReadable()) {
+                return;
+        }
+        reply->abort();
+        reply->deleteLater();
+    }
 
     delete diskCache;
     delete networkManager_;
