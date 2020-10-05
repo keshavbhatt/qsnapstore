@@ -3,11 +3,17 @@
 
 #include <QWidget>
 #include <QDebug>
+#include <QGraphicsOpacityEffect>
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
-#include "remotepixmaplabel.h"
+#include <QFont>
+#include <QClipboard>
+#include <QWheelEvent>
+#include <QGraphicsSceneWheelEvent>
 
+#include "remotepixmaplabel.h"
 #include "widgets/waitingspinnerwidget.h"
+
 namespace Ui {
 class Screenshots;
 }
@@ -40,8 +46,11 @@ private:
     WaitingSpinnerWidget *wall_loader = nullptr;
     QPixmap _currentPixmap;
     bool _pixmapLoaded = false;
+    bool _screenshot = true;
     QClipboard *clipboard = nullptr;
     bool isReady = false;
+    QGraphicsOpacityEffect *eff = nullptr;
+
 
 };
 

@@ -1,10 +1,5 @@
 #include "screenshots.h"
 #include "ui_screenshots.h"
-#include <QFont>
-#include <QClipboard>
-
-#include <QWheelEvent>
-#include <QGraphicsSceneWheelEvent>
 
 Screenshots::Screenshots(QWidget *parent) :
     QWidget(parent),
@@ -20,6 +15,7 @@ Screenshots::Screenshots(QWidget *parent) :
     QIcon right;
     right.addPixmap(QPixmap(":/icons/arrow-right-circle-line.png"), QIcon::Normal);
     right.addPixmap(QPixmap(":/icons/disabled-arrow-right-circle-line.png"), QIcon::Disabled);
+
     ui->next->setIcon(right);
 
     ui->graphicsView->setStyleSheet("border:none");
@@ -56,6 +52,9 @@ Screenshots::Screenshots(QWidget *parent) :
 
 void Screenshots::showIstallCommand(QString command)
 {
+    _screenshot = false;
+    ui->next->hide();
+    ui->previous->hide();
     wall_loader->start();
     ui->graphicsView->scene()->clear();
     ui->graphicsView->resetMatrix();
@@ -70,15 +69,17 @@ void Screenshots::showIstallCommand(QString command)
 
     ui->graphicsView->scene()->setSceneRect(ti->boundingRect());
     ui->graphicsView->scene()->addItem(ti);
-    wall_loader->stop();
     ui->copyCommand->show();
+    wall_loader->stop();
 }
 
 void Screenshots::setItem(QString urlStr)
 {
+    if(!_screenshot)//prevent setting screenshot if install command is visible (this happe in parent's resize event)
+        return;
+
     ui->copyCommand->hide();
     if(_pixmapLoaded){
-        wall_loader->start();
         ui->graphicsView->scene()->clear();
         QGraphicsPixmapItem* item = new QGraphicsPixmapItem();
         item->setFlags(QGraphicsItem::ItemIsSelectable| QGraphicsItem::ItemIsMovable | item->flags() );
@@ -87,7 +88,6 @@ void Screenshots::setItem(QString urlStr)
         ui->graphicsView->scene()->setSceneRect(_currentPixmap.rect());
         ui->graphicsView->scene()->addItem(item);
         ui->graphicsView->fitInView(item,Qt::KeepAspectRatio);
-        wall_loader->stop();
     }else{
         wall_loader->start();
         RemotePixmapLabel *sc = new RemotePixmapLabel(this);
@@ -125,13 +125,29 @@ Screenshots::~Screenshots()
 
 void Screenshots::on_close_clicked()
 {
-    _pixmapLoaded = false;
-    ui->graphicsView->resetMatrix();
-    ui->graphicsView->scene()->clear();
-    ui->copyCommand->hide();
-    ui->copyCommand->setEnabled(true);
-    wall_loader->stop();
-    this->hide();
+    eff =  new QGraphicsOpacityEffect(this);
+    if(eff!=nullptr){
+        this->setGraphicsEffect(eff);
+        QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
+        a->setDuration(300);
+        a->setStartValue(1);
+        a->setEndValue(0);
+        a->setEasingCurve(QEasingCurve::Linear);
+        connect(a,&QPropertyAnimation::finished,[=](){
+            _screenshot   = true;
+            _pixmapLoaded = false;
+            ui->graphicsView->resetMatrix();
+            ui->graphicsView->scene()->clear();
+            ui->copyCommand->hide();
+            ui->copyCommand->setEnabled(true);
+            wall_loader->stop();
+            ui->next->show();
+            ui->previous->show();
+            this->close();
+            eff->deleteLater();
+        });
+        a->start(QPropertyAnimation::DeleteWhenStopped);
+    }
 }
 
 void Screenshots::on_copyCommand_clicked()
@@ -150,10 +166,9 @@ void Screenshots::on_copyCommand_clicked()
 
 bool Screenshots::eventFilter(QObject *obj, QEvent *ev)
 {
-    if (ev->type() == QEvent::GraphicsSceneWheel)
-        {
+    if (ev->type() == QEvent::GraphicsSceneWheel){
             Zoom(static_cast<QGraphicsSceneWheelEvent*> (ev));
-        }
+    }
     return QWidget::eventFilter(obj,ev);
 }
 
