@@ -86,6 +86,8 @@ private slots:
     void showScreenShotWidget();
     void updateAppDetailViewSize();
     void init_store();
+    void showClearCacheButton(QString cFilePath);
+    void updateClearCacheBtn();
 private:
     Ui::MainWindow *ui;
     Ui::track track_ui;

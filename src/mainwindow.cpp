@@ -5,6 +5,7 @@
 #include <QGraphicsPixmapItem>
 #include <QDesktopServices>
 #include <QScrollBar>
+#include <QRect>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -35,6 +36,7 @@ MainWindow::MainWindow(QWidget *parent) :
     split1->setStretchFactor(3,1);
     connect(split1,&QSplitter::splitterMoved,[=](){
          updateAppDetailViewSize();
+         updateClearCacheBtn();
     });
     ui->centerLayout->addWidget(split1);
 
@@ -162,6 +164,10 @@ void MainWindow::init_store()
         showError(errorString);
         _loader->stop();
     });
+    connect(m_store,&Store::loadedFromCache,[=](QString cFilePath){
+        //QFile c_file(cFilePath);
+        showClearCacheButton(cFilePath);
+    });
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
@@ -215,6 +221,7 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         screenshot->setGeometry(this->centralWidget()->geometry());
     }
     updateAppDetailViewSize();
+    updateClearCacheBtn();
     QMainWindow::resizeEvent(event);
 }
 
@@ -226,6 +233,50 @@ void MainWindow::closeEvent(QCloseEvent *event)
     settings.setValue("geometry",saveGeometry());
     settings.setValue("windowState", saveState());
     QWidget::closeEvent(event);
+}
+
+void MainWindow::showClearCacheButton(QString cFilePath)
+{
+    QPushButton *clearCacheBtn = new QPushButton(this);
+    clearCacheBtn->setToolTip(tr("Data is loaded from Cache,\nClick to load fresh data."));
+    clearCacheBtn->setStyleSheet("border-left:none;padding:4px 1px;border-top-left-radius:0;border-bottom-left-radius:0;");
+    clearCacheBtn->setIcon(QIcon(":/icons/refresh-line.png"));
+    clearCacheBtn->setObjectName("clearCacheButton");
+    connect(clearCacheBtn,&QPushButton::clicked,[=](){
+        QFile c_file(cFilePath);
+        if(c_file.exists()){
+            if(c_file.remove()){
+                on_searchBtn_clicked();
+            }
+        }
+    });
+    clearCacheBtn->hide();
+    int x = ui->detailWidget->rect().x();
+    int y = ui->detailWidget->rect().y()+ui->queryEdit->height()+40;
+    QPropertyAnimation *a = new QPropertyAnimation(clearCacheBtn,"geometry");
+    a->setDuration(300);
+    QPoint startPoint(ui->detailWidget->mapToParent(QPoint(x,y)));
+    QPoint endPoint(startPoint.x()+11,startPoint.y());
+    a->setStartValue(QRect(startPoint.x(),startPoint.y()+20,0,0));
+    a->setEndValue(QRect(endPoint.x(),endPoint.y(),clearCacheBtn->sizeHint().width(),clearCacheBtn->sizeHint().height()));
+    a->setEasingCurve(QEasingCurve::InQuad);
+    a->start(QPropertyAnimation::DeleteWhenStopped);
+    clearCacheBtn->show();
+
+    //button deletion is handled in on_searchBtn_clicked
+}
+
+void MainWindow::updateClearCacheBtn()
+{
+    QPushButton *clearCacheBtn = this->findChild<QPushButton*>("clearCacheButton");
+    if(clearCacheBtn != nullptr && clearCacheBtn->isVisible()){
+        //update clear cache button
+        int x = ui->detailWidget->rect().x();
+        int y = ui->detailWidget->rect().y()+ui->queryEdit->height()+40;
+        QPoint startPoint(ui->detailWidget->mapToParent(QPoint(x,y)));
+        QPoint endPoint(startPoint.x()+11,startPoint.y());
+        clearCacheBtn->setGeometry(QRect(endPoint.x(),endPoint.y(),clearCacheBtn->sizeHint().width(),clearCacheBtn->sizeHint().height()));
+    }
 }
 
 void MainWindow::init_screenshotViewer()
@@ -262,6 +313,7 @@ void MainWindow::showScreenShotWidget()
         });
         a->start(QPropertyAnimation::DeleteWhenStopped);
         screenshot->show();
+        screenshot->raise();
     }
 }
 
@@ -678,11 +730,8 @@ void MainWindow::showItemDetail(QStringList item_meta)
     htmlParser = new Md2Html(this);
 
     ui->meta->setHtml(htmlParser->toHtml(descriptionPrefix));
-    ui->meta->setFixedHeight(ui->meta->document()->size().height()+18);
     ui->description->setHtml(htmlParser->toHtml(item_meta.at(elements.indexOf("description"))));
-    ui->description->setFixedHeight(ui->description->document()->size().height()+18);
     ui->meta_bottom->setHtml(htmlParser->toHtml(descriptionSuffix));
-    ui->meta_bottom->setFixedHeight(ui->meta_bottom->document()->size().height()+18);
 
     setAppButtons(item_meta);
     QStringList scUrls = item_meta.at(elements.indexOf("screenshots")).split(",");
@@ -718,10 +767,12 @@ void MainWindow::showItemDetail(QStringList item_meta)
             if(i==0){
                 ui->wallpaperList->setCurrentRow(0);
             }
-            //keep updaing navigation buttons as we add items synchronously
-            updateNavigationButtons();
+
         }
     }
+    //keep updaing navigation buttons as we add items synchronously
+    updateNavigationButtons();
+    updateAppDetailViewSize();
 }
 
 inline QString summaryToKeywords(const QString summary,const QString appname)
@@ -816,10 +867,18 @@ void MainWindow::updateNavigationButtons()
     }else{
         ui->left->setEnabled(false);
     }
+
     bool leftEnabled  = ui->left->isEnabled();
     bool rightEnabled = ui->right->isEnabled();
+
+    //prevent scrollevent blocking if nav buttons are disabled
+    ui->left->setAttribute(Qt::WA_TransparentForMouseEvents, !leftEnabled);
+    ui->right->setAttribute(Qt::WA_TransparentForMouseEvents, !rightEnabled);
+
+    //update button in screenshots widget
     emit navigationButtons(leftEnabled,rightEnabled);
 }
+
 
 void MainWindow::updateAppDetailViewSize()
 {
@@ -853,6 +912,12 @@ void MainWindow::on_queryEdit_textChanged(const QString &arg1)
 
 void MainWindow::on_searchBtn_clicked()
 {
+    //remove clearCacheButton button
+    foreach (QPushButton* btn, this->findChildren<QPushButton*>("clearCacheButton")) {
+        btn->hide();
+        btn->deleteLater();
+    }
+
     m_store->cancelAllRequests();
     stopLoadingResults = true;  // to stop result loader loop
     ui->results->clear();
@@ -961,10 +1026,10 @@ void MainWindow::on_wallpaperList_itemClicked(QListWidgetItem *item)
 
 void MainWindow::on_homeBtn_clicked()
 {
-    loadCategory("featured");
     ui->categoryCombo->blockSignals(true);
     ui->queryEdit->setText("snap-category:featured");
     ui->categoryCombo->setCurrentText("Featured");
+    on_searchBtn_clicked();
     ui->categoryCombo->blockSignals(false);
 }
 
