@@ -127,6 +127,7 @@ QString Md2Html::toHtml(QString str){
     // for preview
     result =QStringLiteral(
             "<html><head><style>"
+            "code{ font-family: FreeMono; }"
             "h1 { margin: 5px 0 20px 0; }"
             "h2, h3 { margin: 10px 0 15px 0; }"
             "table {border-spacing: 0; border-style: solid; border-width: "
