@@ -18,6 +18,7 @@ signals:
     void response(QString dataString);
     void error(QString errorStrting);
     void gotCategories(QString replyStr);
+    void loadedFromCache(QString cFilePath);
 
 public slots:
     void search(QString search_term);

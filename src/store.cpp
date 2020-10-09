@@ -57,16 +57,18 @@ void Store::loadCategory(const QString catName)
 
 void Store::getCategories()
 {
-    QUrl reqUrl(api_end_point+"v2/snaps/categories");
+//    We are forcing to load from local resources for now.
+//    QUrl reqUrl(api_end_point+"v2/snaps/categories");
+    QUrl reqUrl("qrc:/resources/categories.json");
     Request *req = new Request(this);
     connect(req,&Request::requestFinished,[=](QString replyStr){
         req->deleteLater();
         emit gotCategories(replyStr);
     });
-    connect(req,&Request::downloadError,[=](){
-         QUrl localCatUrl("qrc:/resources/categories.json");
-         req->get(localCatUrl);
-    });
+//    connect(req,&Request::downloadError,[=](){
+//         QUrl localCatUrl("qrc:/resources/categories.json");
+//         req->get(localCatUrl);
+//    });
     req->get(reqUrl);
 }
 
@@ -87,6 +89,7 @@ void Store::get(const QUrl url)
     QFileInfo cFile(utils::returnPath("store_cache")+ci_id);
     if(cFile.isFile() && cFile.exists() && cFile.size()!=0){
         processResponse(utils::loadJson(cFile.filePath()).toJson());
+        emit loadedFromCache(cFile.absoluteFilePath());
         qDebug()<<"data loaded from local cache";
     }else{
         QNetworkRequest request(url);
