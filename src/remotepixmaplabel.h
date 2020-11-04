@@ -22,13 +22,15 @@ signals:
     void pixmapLoading();
 
 public slots:
-    void setRemotePixmap(const QString&  url);
+    void setRemotePixmap(const QString&  url, QString fallbackUrlStr = "");
 private slots:
     void pixmapReceived(QNetworkReply*);
+    void showRetry(const QString urlStr);
+    void deleteButtons();
 private:
     QNetworkAccessManager* networkManager_= nullptr;
     QNetworkDiskCache *diskCache = nullptr;
-    int retries;
+    QString fallbackUrlStr;
 };
 
 #endif // REMOTEPIXMAPLABEL_H
