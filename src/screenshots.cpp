@@ -91,7 +91,7 @@ void Screenshots::setItem(QString urlStr)
     }else{
         wall_loader->start();
         RemotePixmapLabel *sc = new RemotePixmapLabel(this);
-        sc->setRemotePixmap(urlStr);
+        sc->setRemotePixmap(urlStr,"qrc:/icons/others/wall_placeholder_180.jpg");
         connect(sc,&RemotePixmapLabel::pixmapLoaded,[=](QByteArray data){
             ui->graphicsView->scene()->clear();
             QGraphicsPixmapItem* item = new QGraphicsPixmapItem();
