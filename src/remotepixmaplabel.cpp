@@ -18,7 +18,9 @@ RemotePixmapLabel::~RemotePixmapLabel()
         if (!reply->isReadable()) {
                 return;
         }
+        reply->blockSignals(true);
         reply->abort();
+        reply->blockSignals(false);
         reply->deleteLater();
     }
     delete diskCache;
