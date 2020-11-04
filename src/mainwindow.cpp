@@ -327,7 +327,7 @@ void MainWindow::setStyle(QString fname)
     }
     qApp->setStyleSheet(styleSheet.readAll());
     styleSheet.close();
-    qApp->setStyle(QStyleFactory::create("fusion"));
+    qApp->setStyle(QStyleFactory::create("Fusion"));
     QPalette palette;
     palette.setColor(QPalette::Window,QColor(53,53,53));
     palette.setColor(QPalette::WindowText,Qt::white);
@@ -530,7 +530,7 @@ void MainWindow::load_data_into_view(QList<QVariantList> data,bool appending)
             }
             track_ui.icon->setFixedSize(trackCoverWidth,trackCoverWidth);
 
-            track_ui.icon->setRemotePixmap(iconUrl);
+            track_ui.icon->setRemotePixmap(iconUrl,"qrc:/icons/others/snapcraft.png");
 
             QListWidgetItem* item;
             item = new QListWidgetItem(ui->results);
@@ -758,7 +758,7 @@ void MainWindow::showItemDetail(QStringList item_meta)
             double width  = ratio * height;
 
             _ui_listitem.thumbnail->setFixedSize(width,height);
-            _ui_listitem.thumbnail->setRemotePixmap(thumbUrl);
+            _ui_listitem.thumbnail->setRemotePixmap(thumbUrl,"qrc:/icons/others/wall_placeholder_180.jpg");
 
             ui->wallpaperList->setItemWidget(item, listwidget);
 
@@ -1019,7 +1019,7 @@ void MainWindow::on_wallpaperList_itemClicked(QListWidgetItem *item)
             QLineEdit *fullUrl = listwidget->findChild<QLineEdit*>("fullUrl");
             this->_currentUrl = fullUrl->text();
             QLineEdit *thumbUrl = listwidget->findChild<QLineEdit*>("thumbUrl");
-            _wall_view->setRemotePixmap(thumbUrl->text().trimmed());
+            _wall_view->setRemotePixmap(thumbUrl->text().trimmed(),"qrc:/icons/others/wall_placeholder_180.jpg");
     }
     updateNavigationButtons();
 }
