@@ -12,8 +12,9 @@ public:
     Request(QObject* parent=0);
     virtual ~Request();
 public slots:
-    void get(const QUrl url);
-    void clearCache(QString url);
+    void get(const QUrl url,bool preferCache = true);
+    void clearCache(QUrl url);
+    void cancelAll();
 signals:
    void requestFinished(QString rep);
    void requestStarted();
@@ -26,6 +27,8 @@ private slots:
    void downloadProgress(qint64 got, qint64 tot);
 private:
    QString _cache_path;
+   QNetworkAccessManager *m_netwManager = nullptr;
+   QList<QNetworkReply*>operations;
 };
 
 #endif // REQUEST_H
