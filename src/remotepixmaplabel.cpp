@@ -54,7 +54,8 @@ void RemotePixmapLabel::pixmapReceived(QNetworkReply* reply)
         //handle errors
         qDebug() << Q_FUNC_INFO << "pixmap receiving error" << reply->error();
         setRemotePixmap(fallbackUrlStr);
-        showRetry(reply->request().url().toString());
+        if(reply->request().url().isEmpty()==false)
+            showRetry(reply->request().url().toString());
     }else{
         //network no-error
         const QByteArray data(reply->readAll());
