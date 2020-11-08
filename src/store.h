@@ -6,6 +6,7 @@
 #include <QStandardPaths>
 #include <QUrlQuery>
 #include <QDebug>
+#include <QDateTime>
 
 
 class Store : public QObject

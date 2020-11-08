@@ -87,7 +87,9 @@ void Store::get(const QUrl url)
     QString reqUrlStr = url.toString();
     QString ci_id = QString(QCryptographicHash::hash((reqUrlStr.toUtf8()),QCryptographicHash::Md5).toHex());
     QFileInfo cFile(utils::returnPath("store_cache")+ci_id);
-    if(cFile.isFile() && cFile.exists() && cFile.size()!=0){
+    // 2 days expiry
+    bool cacheExpired = (QDateTime::currentMSecsSinceEpoch()/1000 - cFile.lastModified().toMSecsSinceEpoch()/1000) > 172800 ? true : false;
+    if(!cacheExpired && cFile.isFile() && cFile.exists() && cFile.size()!=0){
         processResponse(utils::loadJson(cFile.filePath()).toJson());
         emit loadedFromCache(cFile.absoluteFilePath());
         qDebug()<<"data loaded from local cache";
