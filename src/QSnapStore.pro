@@ -34,6 +34,7 @@ CONFIG += c++11
 
 SOURCES += \
         error.cpp \
+        graphicsview.cpp \
         helpers/codetohtmlconverter.cpp \
         main.cpp \
         mainwindow.cpp \
@@ -57,6 +58,7 @@ SOURCES += \
 
 HEADERS += \
         error.h \
+        graphicsview.h \
         helpers/codetohtmlconverter.h \
         mainwindow.h \
         md2html.h \
