@@ -33,14 +33,11 @@ public slots:
     void setItem(QString urlStr);
     void navigationUpdate(bool left, bool right);
     void showIstallCommand(QString command);
-protected slots:
-    bool eventFilter(QObject *obj, QEvent *ev);
 private slots:
     void on_close_clicked();
 
     void on_copyCommand_clicked();
 
-    void Zoom(QGraphicsSceneWheelEvent *event);
 private:
     Ui::Screenshots *ui;
     WaitingSpinnerWidget *wall_loader = nullptr;
